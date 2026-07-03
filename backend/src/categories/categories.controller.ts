@@ -12,6 +12,8 @@ import {
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { JwtUser } from 'src/auth/types/jwt-user.type';
 
 @Controller('categories')
 @UseGuards(JwtAuthGuard)
@@ -19,17 +21,17 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
-  getAll(@Request() req: any) {
-    return this.categoriesService.findAll(req.user.userId);
+  getAll(@CurrentUser() user: JwtUser) {
+    return this.categoriesService.findAll(user.userId);
   }
 
   @Post()
-  create(@Request() req: any, @Body() dto: CreateCategoryDto) {
-    return this.categoriesService.create(req.user.userId, dto.name);
+  create(@CurrentUser() user: JwtUser, @Body() dto: CreateCategoryDto) {
+    return this.categoriesService.create(user.userId, dto.name);
   }
 
   @Delete(':id')
-  remove(@Request() req: any, @Param('id') id: string) {
-    return this.categoriesService.remove(req.user.userId, id);
+  remove(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.categoriesService.remove(user.userId, id);
   }
 }
