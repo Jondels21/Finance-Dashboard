@@ -12,6 +12,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -37,8 +42,10 @@ model Transaction {
   id              String   @id @default(uuid())
   amount          Decimal  @db.Decimal(10, 2)
   description     String?
-  transactionDate DateTime
+  transactionDate DateTime @default(now())
   createdAt       DateTime @default(now())
+
+  type TransactionType @default(EXPENSE)
 
   userId     String
   categoryId String
