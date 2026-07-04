@@ -23,6 +23,9 @@ export class TransactionsService {
         amount: dto.amount,
         description: dto.description,
         type: dto.type,
+        transactionDate: dto.transactionDate
+          ? new Date(dto.transactionDate)
+          : undefined,
 
         user: {
           connect: {
