@@ -32,20 +32,21 @@ export class TransactionsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.transactionsService.findOne(+id);
+  findOne(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.transactionsService.findOne(user.userId, id);
   }
 
   @Patch(':id')
   update(
+    @CurrentUser() user: JwtUser,
     @Param('id') id: string,
-    @Body() updateTransactionDto: UpdateTransactionDto,
+    @Body() dto: UpdateTransactionDto,
   ) {
-    return this.transactionsService.update(+id, updateTransactionDto);
+    return this.transactionsService.update(user.userId, id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.transactionsService.remove(+id);
+  remove(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.transactionsService.remove(user.userId, id);
   }
 }
