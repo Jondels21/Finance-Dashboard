@@ -10,6 +10,8 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { JwtUser } from './types/jwt-user.type';
 
 @Controller('auth')
 export class AuthController {
@@ -28,7 +30,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  getMe(@Request() req: any) {
-    return req.user;
+  getMe(@CurrentUser() user: JwtUser) {
+    return user;
   }
 }
