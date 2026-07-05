@@ -1,46 +1,158 @@
-import {useState, useEffect} from 'react';
-import {getSummary} from '../api/dashboard';
-import {useNavigate} from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
+import {
+  getSummary,
+  getCategoryBreakdown,
+  getMonthlySpending,
+} from '../api/dashboard';
 
-
-interface Summary {
-  income: number;
-  expenses: number;
-  balance: number;
-}
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts';
+import type { CategoryBreakdown, MonthlySpending, Summary } from '../types/dashboard';
 
 function DashboardPage() {
+  const [summary, setSummary] = useState<Summary>();
 
-  const navigate = useNavigate();
+  const [categories, setCategories] =
+    useState<CategoryBreakdown[]>([]);
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
-
-  const [summary, setSummary] = useState<Summary | null>(null);
+  const [monthlyData, setMonthlyData] =
+    useState<MonthlySpending[]>([]);
 
   useEffect(() => {
-    getSummary()
-      .then(setSummary)
-      .catch(console.error);
+    const loadData = async () => {
+      const [
+        summaryData,
+        categoryData,
+        monthlySpendingData,
+      ] = await Promise.all([
+        getSummary(),
+        getCategoryBreakdown(),
+        getMonthlySpending(),
+      ]);
+
+      setSummary(summaryData);
+      setCategories(categoryData);
+      setMonthlyData(monthlySpendingData);
+    };
+
+    void loadData();
   }, []);
 
   if (!summary) {
     return <div>Loading...</div>;
   }
 
+  const COLORS = [
+    '#0088FE',
+    '#00C49F',
+    '#FFBB28',
+    '#FF8042',
+    '#AA66CC',
+  ];
+
   return (
     <div>
-      <h1>Finance Dashboard</h1>
-      <button onClick={logout}>
-        Logout
-      </button>
+      <h1>Dashboard</h1>
 
-      <p>Income: ${summary.income.toFixed(2)}</p>
-      <p>Expenses: ${summary.expenses.toFixed(2)}</p>
-      <p>Balance: ${summary.balance.toFixed(2)}</p>
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-gray-500">
+            Income
+          </h3>
+
+          <p className="text-2xl font-bold">
+            €{summary.income}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-gray-500">
+            Expenses
+          </h3>
+
+          <p className="text-2xl font-bold">
+            €{summary.expenses}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-gray-500">
+            Balance
+          </h3>
+
+          <p className="text-2xl font-bold">
+            €{summary.balance}
+          </p>
+        </div>
+      </div>
+
+      <h2>Category Breakdown</h2>
+
+      <ResponsiveContainer
+        width="100%"
+        height={300}
+      >
+        <PieChart>
+          <Pie
+            data={categories}
+            dataKey="total"
+            nameKey="categoryName"
+            outerRadius={100}
+            label
+          >
+            {categories.map(
+              (_, index) => (
+                <Cell
+                  key={index}
+                  fill={
+                    COLORS[
+                      index %
+                        COLORS.length
+                    ]
+                  }
+                />
+              ),
+            )}
+          </Pie>
+
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+
+      <h2>Monthly Spending</h2>
+
+      <ResponsiveContainer
+        width="100%"
+        height={300}
+      >
+        <LineChart
+          data={monthlyData}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+
+          <XAxis dataKey="month" />
+
+          <YAxis />
+
+          <Tooltip />
+
+          <Line
+            type="monotone"
+            dataKey="expenses"
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
