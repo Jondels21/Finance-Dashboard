@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -22,11 +22,17 @@ export class CategoriesService {
   }
 
   async remove(userId: string, categoryId: string) {
-    return this.prisma.category.deleteMany({
+    const result = await this.prisma.category.deleteMany({
       where: {
         id: categoryId,
         userId,
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Category not found');
+    }
+
+    return result;
   }
 }

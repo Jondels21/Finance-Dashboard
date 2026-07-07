@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { TransactionTypeEnum as TransactionType } from '../transactions/enums/transaction-type.enum';
 
 @Injectable()
