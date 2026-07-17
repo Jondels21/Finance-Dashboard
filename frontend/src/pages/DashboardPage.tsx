@@ -1,22 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import {
-  Cell,
-  CartesianGrid,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Link } from 'react-router-dom';
 
-import {
-  getSummary,
-  getCategoryBreakdown,
-  getMonthlySpending,
-} from '../api/dashboard';
+import { getSummary } from '../api/dashboard';
 import {
   createCategory,
   deleteCategory,
@@ -29,21 +14,8 @@ import {
 } from '../api/transactions';
 import { getApiError } from '../components/ApiError';
 import type { Category } from '../types/category';
-import type {
-  CategoryBreakdown,
-  MonthlySpending,
-  Summary,
-} from '../types/dashboard';
+import type { Summary } from '../types/dashboard';
 import type { Transaction } from '../types/transaction';
-
-const COLORS = [
-  '#0ea5e9',
-  '#14b8a6',
-  '#f59e0b',
-  '#f97316',
-  '#8b5cf6',
-  '#ef4444',
-];
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -64,12 +36,6 @@ function formatDate(value: string) {
 
 function DashboardPage() {
   const [summary, setSummary] = useState<Summary>();
-  const [categoryBreakdown, setCategoryBreakdown] = useState<
-    CategoryBreakdown[]
-  >([]);
-  const [monthlySpending, setMonthlySpending] = useState<MonthlySpending[]>(
-    [],
-  );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,23 +61,13 @@ function DashboardPage() {
     setError('');
 
     try {
-      const [
-        summaryData,
-        breakdownData,
-        monthlyData,
-        transactionData,
-        categoryData,
-      ] = await Promise.all([
+      const [summaryData, transactionData, categoryData] = await Promise.all([
         getSummary(),
-        getCategoryBreakdown(),
-        getMonthlySpending(),
         getTransactions(),
         getCategories(),
       ]);
 
       setSummary(summaryData);
-      setCategoryBreakdown(breakdownData);
-      setMonthlySpending(monthlyData);
       setTransactions(transactionData);
       setCategories(categoryData);
     } catch (err) {
@@ -296,6 +252,12 @@ function DashboardPage() {
               <span className="rounded-full bg-white/10 px-3 py-1">
                 {formatCurrency(totals.balance)} balance
               </span>
+              <Link
+                to="/spending"
+                className="rounded-full bg-white px-3 py-1 font-medium text-slate-900 transition hover:bg-slate-100"
+              >
+                Spending overview
+              </Link>
             </div>
           </div>
 
@@ -333,128 +295,8 @@ function DashboardPage() {
           {error}
         </div>
       )}
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
-          <p className="text-sm font-medium text-slate-500">Income</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {formatCurrency(summary?.income ?? totals.income)}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">Money coming in</p>
-        </article>
-        <article className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
-          <p className="text-sm font-medium text-slate-500">Expenses</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {formatCurrency(summary?.expenses ?? totals.expenses)}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">Money going out</p>
-        </article>
-        <article className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
-          <p className="text-sm font-medium text-slate-500">Balance</p>
-          <p
-            className={`mt-2 text-2xl font-semibold ${
-              (summary?.balance ?? totals.balance) >= 0
-                ? 'text-emerald-600'
-                : 'text-rose-600'
-            }`}
-          >
-            {formatCurrency(summary?.balance ?? totals.balance)}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">Income minus expenses</p>
-        </article>
-        <article className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
-          <p className="text-sm font-medium text-slate-500">Categories</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {categories.length}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">Used to organize spending</p>
-        </article>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
-        <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Spending overview
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                A quick look at category breakdown and monthly spending.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Category breakdown
-              </h3>
-              {isLoading ? (
-                <div className="flex h-64 items-center justify-center text-sm text-slate-500">
-                  Loading chart...
-                </div>
-              ) : categoryBreakdown.length === 0 ? (
-                <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
-                  Add some expenses to see the breakdown.
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      data={categoryBreakdown}
-                      dataKey="total"
-                      nameKey="categoryName"
-                      outerRadius={92}
-                      innerRadius={56}
-                      paddingAngle={2}
-                    >
-                      {categoryBreakdown.map((_, index) => (
-                        <Cell
-                          key={index}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Monthly spending
-              </h3>
-              {isLoading ? (
-                <div className="flex h-64 items-center justify-center text-sm text-slate-500">
-                  Loading chart...
-                </div>
-              ) : monthlySpending.length === 0 ? (
-                <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
-                  Monthly activity will appear here once you add expenses.
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={monthlySpending}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="expenses"
-                      stroke="#0f172a"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
-        </article>
-
-        <aside className="space-y-6">
+      
+      <section className="grid gap-6 xl:grid-cols-2">
           <article
             id="transactions"
             className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80"
@@ -620,7 +462,6 @@ function DashboardPage() {
               )}
             </div>
           </article>
-        </aside>
       </section>
 
       <section

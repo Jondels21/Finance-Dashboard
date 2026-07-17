@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import SpendingOverviewPage from './pages/SpendingOverviewPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -35,6 +36,11 @@ function App() {
           <Route
             path="/transactions"
             element={<DashboardPage />}
+          />
+
+          <Route
+            path="/spending"
+            element={<SpendingOverviewPage />}
           />
         </Route>
       </Routes>

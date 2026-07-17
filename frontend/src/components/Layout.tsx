@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 function Layout() {
   const navigate = useNavigate();
@@ -22,30 +22,36 @@ function Layout() {
           </div>
 
           <div className="flex flex-wrap gap-2 md:ml-auto md:justify-end">
-            <a
-              href="#overview"
+            <Link
+              to="/#overview"
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Overview
-            </a>
-            <a
-              href="#transactions"
+            </Link>
+            <Link
+              to="/#transactions"
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Transactions
-            </a>
-            <a
-              href="#categories"
+            </Link>
+            <Link
+              to="/#categories"
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Categories
-            </a>
-            <a
-              href="#activity"
+            </Link>
+            <Link
+              to="/spending"
+              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Spending
+            </Link>
+            <Link
+              to="/#activity"
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Recent
-            </a>
+            </Link>
             <button
               onClick={logout}
               className="rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
