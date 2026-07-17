@@ -24,4 +24,9 @@ export class DashboardController {
   getMonthlySpending(@CurrentUser() user: JwtUser) {
     return this.dashboardService.getMonthlySpending(user.userId);
   }
+
+  @Get('monthly-income')
+  getMonthlyIncome(@CurrentUser() user: JwtUser) {
+    return this.dashboardService.getMonthlyIncome(user.userId);
+  }
 }

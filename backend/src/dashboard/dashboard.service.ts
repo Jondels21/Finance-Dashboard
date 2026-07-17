@@ -105,4 +105,31 @@ export class DashboardService {
       expenses,
     }));
   }
+
+  async getMonthlyIncome(userId: string) {
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        type: TransactionType.INCOME,
+      },
+      orderBy: {
+        transactionDate: 'asc',
+      },
+    });
+
+    const monthlyTotals = new Map<string, number>();
+
+    for (const transaction of transactions) {
+      const date = transaction.transactionDate;
+      const month = date.toISOString().slice(0, 7);
+
+      const current = monthlyTotals.get(month) ?? 0;
+
+      monthlyTotals.set(month, current + Number(transaction.amount));
+    }
+    return [...monthlyTotals.entries()].map(([month, income]) => ({
+      month,
+      income,
+    }));
+  }
 }
