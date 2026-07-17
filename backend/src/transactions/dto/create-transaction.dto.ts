@@ -6,6 +6,7 @@ import {
   IsOptional,
   MinLength,
   IsDateString,
+  ValidateIf,
 } from 'class-validator';
 
 import { TransactionTypeEnum as TransactionType } from '../enums/transaction-type.enum';
@@ -19,8 +20,14 @@ export class CreateTransactionDto {
   @MinLength(1)
   description?: string;
 
+  @ValidateIf((transaction: CreateTransactionDto) => !transaction.categoryName)
   @IsUUID()
-  categoryId!: string;
+  categoryId?: string;
+
+  @ValidateIf((transaction: CreateTransactionDto) => !transaction.categoryId)
+  @IsString()
+  @MinLength(1)
+  categoryName?: string;
 
   @IsOptional()
   @IsEnum(TransactionType)

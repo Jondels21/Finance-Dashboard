@@ -85,7 +85,7 @@ function DashboardPage() {
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [transactionCategoryName, setTransactionCategoryName] = useState('');
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [transactionDate, setTransactionDate] = useState('');
   const [categoryName, setCategoryName] = useState('');
@@ -146,7 +146,7 @@ function DashboardPage() {
   const resetTransactionForm = () => {
     setAmount('');
     setDescription('');
-    setCategoryId('');
+    setTransactionCategoryName('');
     setTransactionDate('');
     setType('EXPENSE');
   };
@@ -167,8 +167,10 @@ function DashboardPage() {
       return;
     }
 
-    if (!categoryId) {
-      setError('Please select a category before saving the transaction.');
+    const trimmedCategoryName = transactionCategoryName.trim();
+
+    if (!trimmedCategoryName) {
+      setError('Please enter a category before saving the transaction.');
       return;
     }
 
@@ -179,7 +181,7 @@ function DashboardPage() {
       await createTransaction({
         amount: parsedAmount,
         description: description.trim() || undefined,
-        categoryId,
+        categoryName: trimmedCategoryName,
         type,
         transactionDate: transactionDate || undefined,
       });
@@ -255,9 +257,6 @@ function DashboardPage() {
 
     try {
       await deleteCategory(id);
-      if (categoryId === id) {
-        setCategoryId('');
-      }
       await loadData();
     } catch (err) {
       setError(getApiError(err));
@@ -265,8 +264,6 @@ function DashboardPage() {
       setDeletingCategoryId(null);
     }
   };
-
-  const hasCategories = categories.length > 0;
 
   return (
     <div className="space-y-6 pb-8">
@@ -504,21 +501,18 @@ function DashboardPage() {
                   <label className="text-sm font-medium text-slate-700">
                     Category
                   </label>
-                  <select
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    disabled={!hasCategories}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 shadow-sm outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
-                  >
-                    <option value="">
-                      {hasCategories ? 'Select category' : 'No categories yet'}
-                    </option>
+                  <input
+                    list="dashboard-transaction-categories"
+                    placeholder="Groceries, Rent, Salary..."
+                    value={transactionCategoryName}
+                    onChange={(e) => setTransactionCategoryName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 shadow-sm outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
+                  />
+                  <datalist id="dashboard-transaction-categories">
                     {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
+                      <option key={category.id} value={category.name} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div className="space-y-2">
@@ -552,7 +546,7 @@ function DashboardPage() {
 
               <button
                 type="submit"
-                disabled={isSavingTransaction || !hasCategories}
+                disabled={isSavingTransaction}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
                 {isSavingTransaction ? 'Saving...' : 'Add transaction'}

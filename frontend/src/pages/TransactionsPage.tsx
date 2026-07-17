@@ -34,7 +34,7 @@ function TransactionsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [categoryName, setCategoryName] = useState('');
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [transactionDate, setTransactionDate] = useState('');
   const [error, setError] = useState('');
@@ -85,7 +85,7 @@ function TransactionsPage() {
   const resetForm = () => {
     setAmount('');
     setDescription('');
-    setCategoryId('');
+    setCategoryName('');
     setTransactionDate('');
     setType('EXPENSE');
   };
@@ -102,8 +102,10 @@ function TransactionsPage() {
       return;
     }
 
-    if (!categoryId) {
-      setError('Please choose a category before saving.');
+    const trimmedCategoryName = categoryName.trim();
+
+    if (!trimmedCategoryName) {
+      setError('Please enter a category before saving.');
       return;
     }
 
@@ -114,7 +116,7 @@ function TransactionsPage() {
       await createTransaction({
         amount: parsedAmount,
         description: description.trim() || undefined,
-        categoryId,
+        categoryName: trimmedCategoryName,
         type,
         transactionDate: transactionDate || undefined,
       });
@@ -149,8 +151,6 @@ function TransactionsPage() {
       setDeletingId(null);
     }
   };
-
-  const hasCategories = categories.length > 0;
 
   return (
     <div className="space-y-6">
@@ -257,26 +257,18 @@ function TransactionsPage() {
                 <label className="text-sm font-medium text-slate-700">
                   Category
                 </label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  disabled={!hasCategories}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 shadow-sm outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
-                >
-                  <option value="">
-                    {hasCategories ? 'Select category' : 'No categories yet'}
-                  </option>
+                <input
+                  list="transaction-categories"
+                  placeholder="Groceries, Rent, Salary..."
+                  value={categoryName}
+                  onChange={(e) => setCategoryName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 shadow-sm outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
+                />
+                <datalist id="transaction-categories">
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
+                    <option key={category.id} value={category.name} />
                   ))}
-                </select>
-                {!hasCategories && (
-                  <p className="text-sm text-slate-500">
-                    Add a category first to start tracking transactions.
-                  </p>
-                )}
+                </datalist>
               </div>
 
               <div className="space-y-2">
@@ -315,7 +307,7 @@ function TransactionsPage() {
               </p>
               <button
                 type="submit"
-                disabled={isSubmitting || !hasCategories}
+                disabled={isSubmitting}
                 className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
                 {isSubmitting ? 'Saving...' : 'Add Transaction'}

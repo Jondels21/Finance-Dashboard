@@ -6,17 +6,58 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class TransactionsService {
   constructor(private readonly prisma: PrismaService) {}
-  async create(userId: string, dto: CreateTransactionDto) {
+
+  private async resolveCategoryId(
+    userId: string,
+    dto: Pick<CreateTransactionDto, 'categoryId' | 'categoryName'>,
+  ) {
+    if (dto.categoryId) {
+      const category = await this.prisma.category.findFirst({
+        where: {
+          id: dto.categoryId,
+          userId,
+        },
+      });
+
+      if (!category) {
+        throw new ForbiddenException('Category not found');
+      }
+
+      return category.id;
+    }
+
+    const categoryName = dto.categoryName?.trim();
+
+    if (!categoryName) {
+      throw new ForbiddenException('Category not found');
+    }
+
     const category = await this.prisma.category.findFirst({
       where: {
-        id: dto.categoryId,
+        userId,
+        name: {
+          equals: categoryName,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (category) {
+      return category.id;
+    }
+
+    const createdCategory = await this.prisma.category.create({
+      data: {
+        name: categoryName,
         userId,
       },
     });
 
-    if (!category) {
-      throw new ForbiddenException('Category not found');
-    }
+    return createdCategory.id;
+  }
+
+  async create(userId: string, dto: CreateTransactionDto) {
+    const categoryId = await this.resolveCategoryId(userId, dto);
 
     return this.prisma.transaction.create({
       data: {
@@ -35,7 +76,7 @@ export class TransactionsService {
 
         category: {
           connect: {
-            id: dto.categoryId,
+            id: categoryId,
           },
         },
       },
@@ -69,18 +110,10 @@ export class TransactionsService {
   }
 
   async update(userId: string, id: string, dto: UpdateTransactionDto) {
-    if (dto.categoryId) {
-      const category = await this.prisma.category.findFirst({
-        where: {
-          id: dto.categoryId,
-          userId,
-        },
-      });
-
-      if (!category) {
-        throw new ForbiddenException('Category not found');
-      }
-    }
+    const categoryId =
+      dto.categoryId || dto.categoryName
+        ? await this.resolveCategoryId(userId, dto)
+        : undefined;
 
     const transaction = await this.prisma.transaction.findFirst({
       where: {
@@ -100,7 +133,7 @@ export class TransactionsService {
       data: {
         amount: dto.amount,
         description: dto.description,
-        categoryId: dto.categoryId,
+        categoryId,
         type: dto.type,
       },
     });

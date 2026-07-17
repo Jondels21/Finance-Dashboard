@@ -8,7 +8,8 @@ export async function getTransactions() {
 export async function createTransaction(data: {
   amount: number;
   description?: string;
-  categoryId: string;
+  categoryId?: string;
+  categoryName?: string;
   type: 'INCOME' | 'EXPENSE';
   transactionDate?: string;
 }) {
