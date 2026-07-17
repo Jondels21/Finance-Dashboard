@@ -20,7 +20,12 @@ function CategoriesPage() {
   };
 
   useEffect(() => {
-    void loadCategories();
+    const fetchCategories = async () => {
+      const data = await getCategories();
+      setCategories(data);
+    };
+
+    void fetchCategories();
   }, []);
 
   const handleSubmit = async (

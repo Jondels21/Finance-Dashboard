@@ -1,12 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
-import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from './pages/DashboardPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
-import CategoriesPage from './pages/CategoriesPage';
-import TransactionsPage from './pages/TransactionsPage';
 import Layout from './components/Layout';
 
 function App() {
@@ -32,12 +29,12 @@ function App() {
 
           <Route
             path="/categories"
-            element={<CategoriesPage />}
+            element={<DashboardPage />}
           />
 
           <Route
             path="/transactions"
-            element={<TransactionsPage />}
+            element={<DashboardPage />}
           />
         </Route>
       </Routes>
