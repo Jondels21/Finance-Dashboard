@@ -1,7 +1,9 @@
 import { api } from './axios';
 
-export async function getTransactions() {
-  const response = await api.get('/transactions');
+export async function getTransactions(month?: string) {
+  const response = await api.get('/transactions', {
+    params: month ? { month } : undefined,
+  });
   return response.data;
 }
 

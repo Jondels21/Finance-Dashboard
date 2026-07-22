@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   CartesianGrid,
   Cell,
-  Line,
-  LineChart,
+  Bar,
+  BarChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -15,6 +15,7 @@ import {
 
 import {
   getCategoryBreakdown,
+  getMonthlyIncome,
   getMonthlySpending,
   getSummary,
 } from '../api/dashboard';
@@ -22,19 +23,24 @@ import { getApiError } from '../components/ApiError';
 import type {
   CategoryBreakdown,
   MonthlySpending,
+  MonthlyIncome,
   Summary,
 } from '../types/dashboard';
 
 const COLORS = [
-  '#0ea5e9',
-  '#14b8a6',
-  '#f59e0b',
-  '#f97316',
-  '#8b5cf6',
-  '#ef4444',
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#06B6D4",
+  "#EC4899",
+  "#84CC16",
+  "#F97316",
+  "#6B7280",
 ];
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
+const currencyFormatter = new Intl.NumberFormat('fi-FI', {
   style: 'currency',
   currency: 'EUR',
 });
@@ -48,9 +54,13 @@ function SpendingOverviewPage() {
   const [categoryBreakdown, setCategoryBreakdown] = useState<
     CategoryBreakdown[]
   >([]);
-  const [monthlySpending, setMonthlySpending] = useState<MonthlySpending[]>(
-    [],
-  );
+  const [monthlyData, setMonthlyData] = useState<{
+    spending: MonthlySpending[];
+    income: MonthlyIncome[];
+  }>({
+    spending: [],
+    income: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -59,21 +69,31 @@ function SpendingOverviewPage() {
     setError('');
 
     try {
-      const [summaryData, breakdownData, monthlyData] = await Promise.all([
+      const [summaryData, breakdownData, spendingData, incomeData] = await Promise.all([
         getSummary(),
         getCategoryBreakdown(),
         getMonthlySpending(),
+        getMonthlyIncome(),
       ]);
 
       setSummary(summaryData);
       setCategoryBreakdown(breakdownData);
-      setMonthlySpending(monthlyData);
+      setMonthlyData({
+        spending: spendingData,
+        income: incomeData,
+      });
     } catch (err) {
       setError(getApiError(err));
     } finally {
       setIsLoading(false);
     }
   };
+
+  const chartData = monthlyData.spending.map((spending, index) => ({
+    month: spending.month,
+    spending: spending.expenses,
+    income: monthlyData.income[index]?.income ?? 0,
+  }));
 
   useEffect(() => {
     void loadData();
@@ -173,7 +193,7 @@ function SpendingOverviewPage() {
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => `${Number(value).toFixed(2)}€`} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -193,25 +213,28 @@ function SpendingOverviewPage() {
             <div className="flex h-80 items-center justify-center text-sm text-slate-500">
               Loading chart...
             </div>
-          ) : monthlySpending.length === 0 ? (
+          ) : monthlyData.income.length === 0 ? (
             <div className="flex h-80 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
               Monthly activity will appear here once you add expenses.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={monthlySpending}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="expenses"
-                  stroke="#0f172a"
-                  strokeWidth={2}
-                  dot={false}
+                <YAxis width="auto" />
+                <Tooltip formatter={(value) => `${Number(value).toFixed(2)}€`} />
+                <Bar
+                  dataKey="income"
+                  fill="#10B981"
+                  radius={[10, 10, 0, 0]}
                 />
-              </LineChart>
+                <Bar
+                  dataKey="spending"
+                  fill='#EF4444'
+                  radius={[10, 10, 0, 0]}
+                />
+              </BarChart>
             </ResponsiveContainer>
           )}
         </article>

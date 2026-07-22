@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { getSummary, getMonthlyIncome, getMonthlySpending } from '../api/dashboard';
+import { getSummary } from '../api/dashboard';
 import { getCategories } from '../api/categories';
 import {
   createTransaction,
@@ -11,13 +11,10 @@ import {
 import { getApiError } from '../components/ApiError';
 import type { Category } from '../types/category';
 import type { Transaction } from '../types/transaction';
-import type {
-  MonthlySpending,
-  MonthlyIncome,
-} from '../types/dashboard';
+import type { Summary } from '../types/dashboard';
 
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
+const currencyFormatter = new Intl.NumberFormat('fi-FI', {
   style: 'currency',
   currency: 'EUR',
 });
@@ -34,14 +31,15 @@ function formatDate(value: string) {
   });
 }
 
+function getCurrentMonth(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
 function DashboardPage() {
   const [summary, setSummary] = useState<Summary>();
-  const [monthlySpending, setMonthlySpending] = useState<MonthlySpending[]>(
-    [],
-  );
-  const [monthlyIncome, setMonthlyIncome] = useState<MonthlyIncome[]>(
-    [],
-  );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,18 +59,16 @@ function DashboardPage() {
     setIsLoading(true);
     setError('');
 
+    const currentMonth = getCurrentMonth();
+
     try {
-      const [summaryData, transactionData, categoryData, spendingData, incomeData] = await Promise.all([
-        getSummary(),
-        getTransactions(),
+      const [summaryData, transactionData, categoryData] = await Promise.all([
+        getSummary(currentMonth),
+        getTransactions(currentMonth),
         getCategories(),
-        getMonthlySpending(),
-        getMonthlyIncome(),
       ]);
 
       setSummary(summaryData);
-      setMonthlySpending(spendingData);
-      setMonthlyIncome(incomeData);
       setTransactions(transactionData);
       setCategories(categoryData);
     } catch (err) {
