@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { getSummary } from '../api/dashboard';
-import {
-  createCategory,
-  deleteCategory,
-  getCategories,
-} from '../api/categories';
+import { getSummary, getMonthlyIncome, getMonthlySpending } from '../api/dashboard';
+import { getCategories } from '../api/categories';
 import {
   createTransaction,
   deleteTransaction,
@@ -14,8 +10,12 @@ import {
 } from '../api/transactions';
 import { getApiError } from '../components/ApiError';
 import type { Category } from '../types/category';
-import type { Summary } from '../types/dashboard';
 import type { Transaction } from '../types/transaction';
+import type {
+  MonthlySpending,
+  MonthlyIncome,
+} from '../types/dashboard';
+
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -36,38 +36,43 @@ function formatDate(value: string) {
 
 function DashboardPage() {
   const [summary, setSummary] = useState<Summary>();
+  const [monthlySpending, setMonthlySpending] = useState<MonthlySpending[]>(
+    [],
+  );
+  const [monthlyIncome, setMonthlyIncome] = useState<MonthlyIncome[]>(
+    [],
+  );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
-  const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [deletingTransactionId, setDeletingTransactionId] = useState<
     string | null
   >(null);
-  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(
-    null,
-  );
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [transactionCategoryName, setTransactionCategoryName] = useState('');
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [transactionDate, setTransactionDate] = useState('');
-  const [categoryName, setCategoryName] = useState('');
 
   const loadData = async () => {
     setIsLoading(true);
     setError('');
 
     try {
-      const [summaryData, transactionData, categoryData] = await Promise.all([
+      const [summaryData, transactionData, categoryData, spendingData, incomeData] = await Promise.all([
         getSummary(),
         getTransactions(),
         getCategories(),
+        getMonthlySpending(),
+        getMonthlyIncome(),
       ]);
 
       setSummary(summaryData);
+      setMonthlySpending(spendingData);
+      setMonthlyIncome(incomeData);
       setTransactions(transactionData);
       setCategories(categoryData);
     } catch (err) {
@@ -77,11 +82,18 @@ function DashboardPage() {
     }
   };
 
+  const navigate = useNavigate();
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
   useEffect(() => {
     void loadData();
   }, []);
 
-  const recentTransactions = useMemo(() => transactions.slice(0, 6), [transactions]);
+  const recentTransactions = useMemo(() => transactions.slice(0, 5), [transactions]);
 
   const totals = useMemo(() => {
     const income = transactions
@@ -105,10 +117,6 @@ function DashboardPage() {
     setTransactionCategoryName('');
     setTransactionDate('');
     setType('EXPENSE');
-  };
-
-  const resetCategoryForm = () => {
-    setCategoryName('');
   };
 
   const handleTransactionSubmit = async (
@@ -151,32 +159,6 @@ function DashboardPage() {
     }
   };
 
-  const handleCategorySubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-
-    const trimmedName = categoryName.trim();
-
-    if (!trimmedName) {
-      setError('Category name cannot be empty.');
-      return;
-    }
-
-    setIsSavingCategory(true);
-    setError('');
-
-    try {
-      await createCategory(trimmedName);
-      resetCategoryForm();
-      await loadData();
-    } catch (err) {
-      setError(getApiError(err));
-    } finally {
-      setIsSavingCategory(false);
-    }
-  };
-
   const handleDeleteTransaction = async (id: string) => {
     const shouldDelete = window.confirm(
       'Delete this transaction? This cannot be undone.',
@@ -199,28 +181,6 @@ function DashboardPage() {
     }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    const shouldDelete = window.confirm(
-      'Delete this category? Existing transactions will be removed too.',
-    );
-
-    if (!shouldDelete) {
-      return;
-    }
-
-    setDeletingCategoryId(id);
-    setError('');
-
-    try {
-      await deleteCategory(id);
-      await loadData();
-    } catch (err) {
-      setError(getApiError(err));
-    } finally {
-      setDeletingCategoryId(null);
-    }
-  };
-
   return (
     <div className="space-y-6 pb-8">
       <section
@@ -236,10 +196,6 @@ function DashboardPage() {
               <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
                 Your money, categories, and transactions in one place.
               </h1>
-              <p className="max-w-2xl text-sm leading-6 text-slate-300 md:text-base">
-                Review the big picture, add new activity, and manage categories
-                without jumping between screens.
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-3 text-sm text-slate-200">
@@ -249,15 +205,25 @@ function DashboardPage() {
               <span className="rounded-full bg-white/10 px-3 py-1">
                 {categories.length} categories
               </span>
-              <span className="rounded-full bg-white/10 px-3 py-1">
-                {formatCurrency(totals.balance)} balance
-              </span>
               <Link
                 to="/spending"
                 className="rounded-full bg-white px-3 py-1 font-medium text-slate-900 transition hover:bg-slate-100"
               >
                 Spending overview
               </Link>
+              <Link
+                to="/categories"
+                className="rounded-full bg-white px-3 py-1 font-medium text-slate-900 transition hover:bg-slate-100"
+              >
+                Manage Categories
+              </Link>
+              <button
+              onClick={logout}
+              className="rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
+            >
+              Logout
+            </button>
+
             </div>
           </div>
 
@@ -297,20 +263,17 @@ function DashboardPage() {
       )}
       
       <section className="grid gap-6 xl:grid-cols-2">
-          <article
-            id="transactions"
-            className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80"
-          >
-            <div className="mb-5">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Add transaction
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Add income or expenses quickly, without leaving the page.
-              </p>
-            </div>
+        <article
+          id="transactions"
+          className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80"
+        >
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Add transaction
+            </h2>
+          </div>
 
-            <form onSubmit={handleTransactionSubmit} className="space-y-4">
+          <form onSubmit={handleTransactionSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">
@@ -393,116 +356,45 @@ function DashboardPage() {
               >
                 {isSavingTransaction ? 'Saving...' : 'Add transaction'}
               </button>
-            </form>
-          </article>
+          </form>
+        </article>
 
-          <article
-            id="categories"
-            className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80"
-          >
-            <div className="mb-5">
+        <article
+          id="activity"
+          className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80"
+        >
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
               <h2 className="text-lg font-semibold text-slate-900">
-                Categories
+                Recent transactions
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Keep categories simple so tracking stays fast.
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadData()}
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
+              Loading transactions...
+            </div>
+          ) : recentTransactions.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+              <h3 className="text-base font-semibold text-slate-900">
+                No transactions yet
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Start by adding a transaction. The recent activity feed will
+                fill in here.
               </p>
             </div>
-
-            <form onSubmit={handleCategorySubmit} className="space-y-3">
-              <input
-                value={categoryName}
-                placeholder="New category name"
-                onChange={(e) => setCategoryName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 shadow-sm outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
-              />
-              <button
-                type="submit"
-                disabled={isSavingCategory}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 px-4 py-3 font-medium text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSavingCategory ? 'Creating...' : 'Add category'}
-              </button>
-            </form>
-
-            <div className="mt-6 space-y-3">
-              {isLoading ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                  Loading categories...
-                </div>
-              ) : categories.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                  No categories yet. Create one to start tagging transactions.
-                </div>
-              ) : (
-                categories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {category.name}
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        Used in your transaction list
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => void handleDeleteCategory(category.id)}
-                      disabled={deletingCategoryId === category.id}
-                      className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {deletingCategoryId === category.id
-                        ? 'Deleting...'
-                        : 'Delete'}
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
-      </section>
-
-      <section
-        id="activity"
-        className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80"
-      >
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Recent transactions
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              A quick view of what has happened most recently.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void loadData()}
-            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Refresh
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
-            Loading transactions...
-          </div>
-        ) : recentTransactions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <h3 className="text-base font-semibold text-slate-900">
-              No transactions yet
-            </h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Start by adding a transaction above. The recent activity feed will
-              fill in here.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 md:block">
+          ) : (
+            <>
+              <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 md:block">
               <table className="w-full">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-sm text-slate-500">
@@ -555,9 +447,9 @@ function DashboardPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
 
-            <div className="space-y-3 md:hidden">
+              <div className="space-y-3 md:hidden">
               {recentTransactions.map((transaction) => (
                 <article
                   key={transaction.id}
@@ -599,9 +491,10 @@ function DashboardPage() {
                   </button>
                 </article>
               ))}
-            </div>
-          </>
-        )}
+              </div>
+            </>
+          )}
+        </article>
       </section>
     </div>
   );

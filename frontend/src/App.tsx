@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import SpendingOverviewPage from './pages/SpendingOverviewPage';
+import CategoriesPage from './pages/CategoriesPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -30,12 +31,7 @@ function App() {
 
           <Route
             path="/categories"
-            element={<DashboardPage />}
-          />
-
-          <Route
-            path="/transactions"
-            element={<DashboardPage />}
+            element={<CategoriesPage />}
           />
 
           <Route

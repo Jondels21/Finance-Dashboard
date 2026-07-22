@@ -20,3 +20,11 @@ export async function getMonthlySpending() {
 
   return response.data;
 }
+
+export async function getMonthlyIncome() {
+  const response = await api.get(
+    '/dashboard/monthly-income',
+  );
+
+  return response.data;
+}

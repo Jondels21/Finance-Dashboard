@@ -14,3 +14,8 @@ export interface MonthlySpending {
   month: string;
   expenses: number;
 }
+
+export interface MonthlyIncome {
+  month: string;
+  income: number;
+}
