@@ -6,11 +6,27 @@ import { TransactionTypeEnum as TransactionType } from '../transactions/enums/tr
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSummary(userId: string) {
+  private parseMonth(month?: string): { gte: Date; lt: Date } | undefined {
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return undefined;
+    }
+
+    const [year, monthNum] = month.split('-').map(Number);
+
+    const start = new Date(year, monthNum - 1, 1);
+    const end = new Date(year, monthNum, 1);
+
+    return { gte: start, lt: end };
+  }
+
+  async getSummary(userId: string, month?: string) {
+    const dateFilter = this.parseMonth(month);
+
     const income = await this.prisma.transaction.aggregate({
       where: {
         userId,
         type: TransactionType.INCOME,
+        ...(dateFilter ? { transactionDate: dateFilter } : {}),
       },
       _sum: {
         amount: true,
@@ -21,6 +37,7 @@ export class DashboardService {
       where: {
         userId,
         type: TransactionType.EXPENSE,
+        ...(dateFilter ? { transactionDate: dateFilter } : {}),
       },
       _sum: {
         amount: true,
@@ -38,11 +55,14 @@ export class DashboardService {
     };
   }
 
-  async getCategoryBreakdown(userId: string) {
+  async getCategoryBreakdown(userId: string, month?: string) {
+    const dateFilter = this.parseMonth(month);
+
     const transactions = await this.prisma.transaction.findMany({
       where: {
         userId,
         type: TransactionType.EXPENSE,
+        ...(dateFilter ? { transactionDate: dateFilter } : {}),
       },
       include: {
         category: true,
@@ -79,11 +99,14 @@ export class DashboardService {
     return [...totals.values()].sort((a, b) => b.total - a.total);
   }
 
-  async getMonthlySpending(userId: string) {
+  async getMonthlySpending(userId: string, month?: string) {
+    const dateFilter = this.parseMonth(month);
+
     const transactions = await this.prisma.transaction.findMany({
       where: {
         userId,
         type: TransactionType.EXPENSE,
+        ...(dateFilter ? { transactionDate: dateFilter } : {}),
       },
       orderBy: {
         transactionDate: 'asc',
@@ -94,23 +117,26 @@ export class DashboardService {
 
     for (const transaction of transactions) {
       const date = transaction.transactionDate;
-      const month = date.toISOString().slice(0, 7); // Get YYYY-MM format
+      const monthKey = date.toISOString().slice(0, 7);
 
-      const current = monthlyTotals.get(month) ?? 0;
+      const current = monthlyTotals.get(monthKey) ?? 0;
 
-      monthlyTotals.set(month, current + Number(transaction.amount));
+      monthlyTotals.set(monthKey, current + Number(transaction.amount));
     }
-    return [...monthlyTotals.entries()].map(([month, expenses]) => ({
-      month,
+    return [...monthlyTotals.entries()].map(([monthKey, expenses]) => ({
+      month: monthKey,
       expenses,
     }));
   }
 
-  async getMonthlyIncome(userId: string) {
+  async getMonthlyIncome(userId: string, month?: string) {
+    const dateFilter = this.parseMonth(month);
+
     const transactions = await this.prisma.transaction.findMany({
       where: {
         userId,
         type: TransactionType.INCOME,
+        ...(dateFilter ? { transactionDate: dateFilter } : {}),
       },
       orderBy: {
         transactionDate: 'asc',
@@ -121,14 +147,14 @@ export class DashboardService {
 
     for (const transaction of transactions) {
       const date = transaction.transactionDate;
-      const month = date.toISOString().slice(0, 7);
+      const monthKey = date.toISOString().slice(0, 7);
 
-      const current = monthlyTotals.get(month) ?? 0;
+      const current = monthlyTotals.get(monthKey) ?? 0;
 
-      monthlyTotals.set(month, current + Number(transaction.amount));
+      monthlyTotals.set(monthKey, current + Number(transaction.amount));
     }
-    return [...monthlyTotals.entries()].map(([month, income]) => ({
-      month,
+    return [...monthlyTotals.entries()].map(([monthKey, income]) => ({
+      month: monthKey,
       income,
     }));
   }

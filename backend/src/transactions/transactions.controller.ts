@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -27,8 +28,8 @@ export class TransactionsController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: JwtUser) {
-    return this.transactionsService.findAll(user.userId);
+  findAll(@CurrentUser() user: JwtUser, @Query('month') month?: string) {
+    return this.transactionsService.findAll(user.userId, month);
   }
 
   @Get(':id')

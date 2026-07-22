@@ -83,10 +83,22 @@ export class TransactionsService {
     });
   }
 
-  findAll(userId: string) {
+  findAll(userId: string, month?: string) {
+    const dateFilter =
+      month && /^\d{4}-\d{2}$/.test(month)
+        ? (() => {
+            const [year, monthNum] = month.split('-').map(Number);
+            return {
+              gte: new Date(year, monthNum - 1, 1),
+              lt: new Date(year, monthNum, 1),
+            };
+          })()
+        : undefined;
+
     return this.prisma.transaction.findMany({
       where: {
         userId,
+        ...(dateFilter ? { transactionDate: dateFilter } : {}),
       },
       include: {
         category: true,

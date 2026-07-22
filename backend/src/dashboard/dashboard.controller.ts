@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -11,22 +11,31 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('summary')
-  getSummary(@CurrentUser() user: JwtUser) {
-    return this.dashboardService.getSummary(user.userId);
+  getSummary(@CurrentUser() user: JwtUser, @Query('month') month?: string) {
+    return this.dashboardService.getSummary(user.userId, month);
   }
 
   @Get('category-breakdown')
-  getCategoryBreakdown(@CurrentUser() user: JwtUser) {
-    return this.dashboardService.getCategoryBreakdown(user.userId);
+  getCategoryBreakdown(
+    @CurrentUser() user: JwtUser,
+    @Query('month') month?: string,
+  ) {
+    return this.dashboardService.getCategoryBreakdown(user.userId, month);
   }
 
   @Get('monthly-spending')
-  getMonthlySpending(@CurrentUser() user: JwtUser) {
-    return this.dashboardService.getMonthlySpending(user.userId);
+  getMonthlySpending(
+    @CurrentUser() user: JwtUser,
+    @Query('month') month?: string,
+  ) {
+    return this.dashboardService.getMonthlySpending(user.userId, month);
   }
 
   @Get('monthly-income')
-  getMonthlyIncome(@CurrentUser() user: JwtUser) {
-    return this.dashboardService.getMonthlyIncome(user.userId);
+  getMonthlyIncome(
+    @CurrentUser() user: JwtUser,
+    @Query('month') month?: string,
+  ) {
+    return this.dashboardService.getMonthlyIncome(user.userId, month);
   }
 }
